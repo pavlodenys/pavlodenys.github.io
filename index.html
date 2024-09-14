@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <title>Tetris Game</title>
     <style>
-        body {
+        body 
             background: #ffffff;
             display: flex;
             flex-direction: column;
@@ -60,7 +60,7 @@
 <div id="score">Score: 0</div>
     
     <div id="game-container">
-        <canvas id="tetris" width="240" height="400"></canvas>
+        <canvas id="tetris" width="480" height="800"></canvas>
     </div>
     <div id="controls">
         <button id="left">Left</button>
@@ -160,17 +160,25 @@
         }
 
         function arenaSweep() {
-            outer: for (let y = arena.length - 1; y >= 0; --y) {
-                for (let x = 0; x < arena[y].length; ++x) {
-                    if (arena[y][x] === 0) {
-                        continue outer;
-                    }
-                }
-                const row = arena.splice(y, 1)[0].fill(0);
-                arena.unshift(row);
-                ++y;
+    let rowCount = 0;
+    outer: for (let y = arena.length - 1; y >= 0; --y) {
+        for (let x = 0; x < arena[y].length; ++x) {
+            if (arena[y][x] === 0) {
+                continue outer;
             }
         }
+
+        const row = arena.splice(y, 1)[0].fill(0);
+        arena.unshift(row);
+        ++y;
+
+        rowCount++;
+    }
+    if (rowCount > 0) {
+        player.score += rowCount * 10;
+        updateScore();
+    }
+}
 
         function rotate(matrix, dir) {
             for (let y = 0; y < matrix.length; ++y) {
@@ -290,6 +298,7 @@ updateScore();
         const player = {
             pos: {x: 0, y: 0},
             matrix: null,
+            score: 0
         };
 
         function addControlListeners() {
