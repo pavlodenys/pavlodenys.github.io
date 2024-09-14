@@ -32,9 +32,32 @@
             margin: 5px;
             flex: 1;
         }
+
+        /* Add or update these styles in your <style> section */
+#game-container {
+    position: relative;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#score {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: white;
+    font-size: 20px;
+}
+
+        
     </style>
 </head>
 <body>
+
+    <!-- Add this inside the #game-container div, after the canvas element -->
+<div id="score">Score: 0</div>
+    
     <div id="game-container">
         <canvas id="tetris" width="240" height="400"></canvas>
     </div>
@@ -174,7 +197,17 @@
                 player.pos.y--;
                 merge(arena, player);
                 playerReset();
-                arenaSweep();
+
+                
+// Update the updateScore function in your JavaScript code
+function updateScore() {
+    document.getElementById('score').innerText = 'Score: ' + player.score;
+}
+
+// Make sure to call updateScore() after the score changes
+// For example, after clearing rows in the arenaSweep function, add:
+arenaSweep();
+updateScore();
             }
             dropCounter = 0;
         }
