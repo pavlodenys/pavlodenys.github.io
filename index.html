@@ -167,16 +167,14 @@
                 continue outer;
             }
         }
-
         const row = arena.splice(y, 1)[0].fill(0);
         arena.unshift(row);
         ++y;
-
         rowCount++;
     }
     if (rowCount > 0) {
-        player.score = player.score + rowCount * 10;
-        updateScore();
+        player.score += rowCount * 10;
+        updateScore(); // Make sure score is updated here after sweep
     }
 }
 
@@ -201,11 +199,16 @@
         }
 
         function playerDrop() {
-            player.pos.y++;
-            if (collide(arena, player)) {
-                player.pos.y--;
-                merge(arena, player);
-                playerReset();
+    player.pos.y++;
+    if (collide(arena, player)) {
+        player.pos.y--;
+        merge(arena, player);
+        arenaSweep(); // Move the arenaSweep inside playerDrop
+        playerReset();
+        updateScore(); // Ensure score updates after each drop
+    }
+    dropCounter = 0;
+}
 
                 
 // Update the updateScore function in your JavaScript code
@@ -213,13 +216,7 @@ function updateScore() {
     document.getElementById('score').innerText = 'Score: ' + player.score;
 }
 
-// Make sure to call updateScore() after the score changes
-// For example, after clearing rows in the arenaSweep function, add:
-arenaSweep();
-updateScore();
-            }
-            dropCounter = 0;
-        }
+
 
         function playerMove(offset) {
             player.pos.x += offset;
