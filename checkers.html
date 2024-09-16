@@ -1,0 +1,243 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Online Checkers</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+</head>
+<body>
+    <div id="scores">
+        <span id="red-score">Red: 0</span>
+        <span id="black-score">Black: 0</span>
+    </div>
+    <div id="game">
+        <div id="board"></div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
+
+<!-- style.css -->
+<style>
+#board {
+    display: grid;
+    grid-template: repeat(8, 1fr) / repeat(8, 1fr);
+    width: 400px;
+    height: 400px;
+    margin: auto;
+}
+.square {
+    width: 50px;
+    height: 50px;
+    position: relative;
+}
+.dark {
+    background-color: brown;
+}
+.light {
+    background-color: beige;
+}
+.piece {
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    margin: auto;
+    position: absolute;
+    top: 5px;
+    left: 5px;
+}
+.red {
+    background-color: red;
+}
+.black {
+    background-color: black;
+}
+#scores {
+    text-align: center;
+    margin-bottom: 10px;
+}
+#scores span {
+    margin: 0 20px;
+    font-weight: bold;
+    font-size: 20px;
+}
+</style>
+
+<!-- script.js -->
+<script>
+// Your Firebase configuration
+const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+    projectId: "YOUR_PROJECT_ID",
+    // ...other config
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Variables to track game state
+const boardElement = document.getElementById('board');
+let board = [];
+let currentPlayer = 'R'; // 'R' for Red, 'B' for Black
+let redScore = 12;
+let blackScore = 12;
+let playerColor;
+let selectedPiece = null;
+
+// Generate or get game ID from URL
+let gameId = window.location.hash.substring(1);
+if (!gameId) {
+    gameId = Math.random().toString(36).substr(2, 9);
+    window.location.hash = gameId;
+    alert(`Send this link to your opponent:\n\n${window.location.href}`);
+}
+
+const gameRef = database.ref('games/' + gameId);
+
+gameRef.once('value').then((snapshot) => {
+    if (!snapshot.exists()) {
+        playerColor = 'R'; // Game creator is Red
+        initializeBoard();
+        updateGameState();
+    } else {
+        playerColor = 'B'; // Joiner is Black
+        gameRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                board = data.board;
+                currentPlayer = data.currentPlayer;
+                drawBoard();
+                updateScores();
+            }
+        });
+    }
+});
+
+// Initialize the game board
+function initializeBoard() {
+    for (let row = 0; row < 8; row++) {
+        board[row] = [];
+        for (let col = 0; col < 8; col++) {
+            if ((row + col) % 2 === 1) {
+                if (row < 3) {
+                    board[row][col] = 'R'; // Red pieces
+                } else if (row > 4) {
+                    board[row][col] = 'B'; // Black pieces
+                } else {
+                    board[row][col] = null; // Empty square
+                }
+            } else {
+                board[row][col] = null; // Light squares are not used
+            }
+        }
+    }
+    drawBoard();
+    updateScores();
+}
+
+function drawBoard() {
+    // Clear the boardElement
+    boardElement.innerHTML = '';
+    for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+            const square = document.createElement('div');
+            square.classList.add('square');
+            square.dataset.row = row;
+            square.dataset.col = col;
+            if ((row + col) % 2 === 0) {
+                square.classList.add('light');
+            } else {
+                square.classList.add('dark');
+                const pieceType = board[row][col];
+                if (pieceType) {
+                    const piece = document.createElement('div');
+                    piece.classList.add('piece');
+                    piece.classList.add(pieceType === 'R' ? 'red' : 'black');
+                    square.appendChild(piece);
+                }
+            }
+            boardElement.appendChild(square);
+        }
+    }
+}
+
+function updateGameState() {
+    gameRef.set({
+        board: board,
+        currentPlayer: currentPlayer,
+    });
+}
+
+boardElement.addEventListener('click', (e) => {
+    const square = e.target.closest('.square');
+    if (!square) return;
+
+    const row = parseInt(square.dataset.row);
+    const col = parseInt(square.dataset.col);
+
+    if (currentPlayer !== playerColor) {
+        alert("It's not your turn!");
+        return;
+    }
+
+    if (!selectedPiece) {
+        // Select a piece
+        if (board[row][col] === currentPlayer) {
+            selectedPiece = { row, col };
+            highlightSquare(square);
+        }
+    } else {
+        // Move the piece
+        if (isValidMove(selectedPiece.row, selectedPiece.col, row, col)) {
+            movePiece(selectedPiece.row, selectedPiece.col, row, col);
+            selectedPiece = null;
+            currentPlayer = currentPlayer === 'R' ? 'B' : 'R';
+            updateGameState();
+        } else {
+            selectedPiece = null;
+            drawBoard();
+        }
+    }
+});
+
+function highlightSquare(square) {
+    square.style.outline = '2px solid yellow';
+}
+
+function isValidMove(fromRow, fromCol, toRow, toCol) {
+    // Simplified move validation
+    if (board[toRow][toCol] !== null) return false;
+    const dir = currentPlayer === 'R' ? 1 : -1;
+    if (toRow - fromRow === dir && Math.abs(toCol - fromCol) === 1) {
+        return true;
+    }
+    // Add capture logic here
+    return false;
+}
+
+function movePiece(fromRow, fromCol, toRow, toCol) {
+    board[toRow][toCol] = board[fromRow][fromCol];
+    board[fromRow][fromCol] = null;
+    drawBoard();
+}
+
+function updateScores() {
+    redScore = 0;
+    blackScore = 0;
+    for (let row of board) {
+        for (let cell of row) {
+            if (cell === 'R') redScore++;
+            if (cell === 'B') blackScore++;
+        }
+    }
+    document.getElementById('red-score').innerText = `Red: ${redScore}`;
+    document.getElementById('black-score').innerText = `Black: ${blackScore}`;
+}
+</script>
