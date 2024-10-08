@@ -1,323 +1,55 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Tetris Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fractal View</title>
     <style>
-        body 
-            background: #ffffff;
-            display: flex;
-            flex-direction: column;
-            height: 80vh;
+        body {
             margin: 0;
+            padding: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
         }
-        #game-container {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        canvas {
-            border: 2px solid #000;
+        #fractalCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
         }
         #controls {
-            display: flex;
-            justify-content: center;
-            margin-top: -30px;
-            height: 150px;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        button {
-            padding: 25px 30px;
-            font-size: 40px;
-            margin: 25px;
-            flex: 1;
+        #controls label {
+            display: block;
+            margin-bottom: 5px;
         }
-
-        /* Add or update these styles in your <style> section */
-#game-container {
-    position: relative;
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-#score {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    color: #000;
-    font-size: 50px;
-}
-
-        
+        #controls select,
+        #controls input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-
-    <!-- Add this inside the #game-container div, after the canvas element -->
-<div id="score">Score: 0</div>
-    
-    <div id="game-container">
-        <canvas id="tetris" width="480" height="800"></canvas>
-    </div>
+    <canvas id="fractalCanvas"></canvas>
     <div id="controls">
-        <button id="left">Left</button>
-        <button id="rotate">Rotate</button>
-        <button id="right">Right</button>
-        <button id="down">Down</button>
+        <label for="formulaSelect">Formula:</label>
+        <select id="formulaSelect">
+            <option value="mandelbrot">Mandelbrot</option>
+            <option value="julia">Julia</option>
+        </select>
+        <label for="maxIterations">Max Iterations:</label>
+        <input type="number" id="maxIterations" value="100" min="1">
     </div>
-    <script>
-        const canvas = document.getElementById('tetris');
-        const context = canvas.getContext('2d');
-        context.scale(40, 40);
-
-        const SHAPES = {
-            'T': [
-                [0, 0, 0],
-                [1, 1, 1],
-                [0, 1, 0],
-            ],
-            'O': [
-                [2, 2],
-                [2, 2],
-            ],
-            'I': [
-                [0, 3, 0, 0],
-                [0, 3, 0, 0],
-                [0, 3, 0, 0],
-                [0, 3, 0, 0],
-            ],
-            'S': [
-                [0, 4, 4],
-                [4, 4, 0],
-                [0, 0, 0],
-            ],
-            'Z': [
-                [5, 5, 0],
-                [0, 5, 5],
-                [0, 0, 0],
-            ],
-            'J': [
-                [6, 0, 0],
-                [6, 6, 6],
-                [0, 0, 0],
-            ],
-            'L': [
-                [0, 0, 7],
-                [7, 7, 7],
-                [0, 0, 0],
-            ],
-        };
-
-        const COLORS = [
-            null,
-            '#FF0D72',
-            '#0DC2FF',
-            '#0DFF72',
-            '#F538FF',
-            '#FF8E0D',
-            '#FFE138',
-            '#3877FF',
-        ];
-
-        function createMatrix(w, h) {
-            const matrix = [];
-            while (h--) {
-                matrix.push(new Array(w).fill(0));
-            }
-            return matrix;
-        }
-
-        function createPiece(type) {
-            return SHAPES[type];
-        }
-
-        function collide(arena, player) {
-            const m = player.matrix;
-            const o = player.pos;
-            for (let y = 0; y < m.length; ++y) {
-                for (let x = 0; x < m[y].length; ++x) {
-                    if (m[y][x] !== 0 &&
-                        (arena[y + o.y] &&
-                        arena[y + o.y][x + o.x]) !== 0) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        function merge(arena, player) {
-            player.matrix.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value !== 0) {
-                        arena[y + player.pos.y][x + player.pos.x] = value;
-                    }
-                });
-            });
-        }
-
-        function arenaSweep() {
-    let rowCount = 0;
-    outer: for (let y = arena.length - 1; y >= 0; --y) {
-        for (let x = 0; x < arena[y].length; ++x) {
-            if (arena[y][x] === 0) {
-                continue outer;
-            }
-        }
-        const row = arena.splice(y, 1)[0].fill(0);
-        arena.unshift(row);
-        ++y;
-        rowCount++;
-    }
-    if (rowCount > 0) {
-        player.score += rowCount * 10;
-        updateScore(); // Make sure score is updated here after sweep
-    }
-}
-
-        function rotate(matrix, dir) {
-            for (let y = 0; y < matrix.length; ++y) {
-                for (let x = 0; x < y; ++x) {
-                    [
-                        matrix[x][y],
-                        matrix[y][x],
-                    ] = [
-                        matrix[y][x],
-                        matrix[x][y],
-                    ];
-                }
-            }
-
-            if (dir > 0) {
-                matrix.forEach(row => row.reverse());
-            } else {
-                matrix.reverse();
-            }
-        }
-
-        function playerDrop() {
-    player.pos.y++;
-    if (collide(arena, player)) {
-        player.pos.y--;
-        merge(arena, player);
-        arenaSweep(); // Move the arenaSweep inside playerDrop
-        playerReset();
-        updateScore(); // Ensure score updates after each drop
-    }
-    dropCounter = 0;
-}
-
-                
-// Update the updateScore function in your JavaScript code
-function updateScore() {
-    document.getElementById('score').innerText = 'Score: ' + player.score;
-}
-
-
-
-        function playerMove(offset) {
-            player.pos.x += offset;
-            if (collide(arena, player)) {
-                player.pos.x -= offset;
-            }
-        }
-
-        function playerReset() {
-            const pieces = 'TJLOSZI';
-            player.matrix = createPiece(pieces[Math.floor(Math.random() * pieces.length)]);
-            player.pos.y = 0;
-            player.pos.x = (arena[0].length / 2 | 0) -
-                            (player.matrix[0].length / 2 | 0);
-            if (collide(arena, player)) {
-                arena.forEach(row => row.fill(0));
-            }
-        }
-
-        function playerRotate(dir) {
-            const pos = player.pos.x;
-            let offset = 1;
-            rotate(player.matrix, dir);
-            while (collide(arena, player)) {
-                player.pos.x += offset;
-                offset = -(offset + (offset > 0 ? 1 : -1));
-                if (offset > player.matrix[0].length) {
-                    rotate(player.matrix, -dir);
-                    player.pos.x = pos;
-                    return;
-                }
-            }
-        }
-
-        function draw() {
-            context.fillStyle = '#000';
-            context.fillRect(0, 0, canvas.width, canvas.height);
-
-            drawMatrix(arena, {x: 0, y: 0});
-            drawMatrix(player.matrix, player.pos);
-        }
-
-        function drawMatrix(matrix, offset) {
-            matrix.forEach((row, y) => {
-                row.forEach((value, x) => {
-                    if (value !== 0) {
-                        context.fillStyle = COLORS[value];
-                        context.fillRect(x + offset.x,
-                                        y + offset.y,
-                                        1, 1);
-                    }
-                });
-            });
-        }
-
-        let dropCounter = 0;
-        let dropInterval = 1000;
-
-        let lastTime = 0;
-
-        function update(time = 0) {
-            const deltaTime = time - lastTime;
-            lastTime = time;
-
-            dropCounter += deltaTime;
-            if (dropCounter > dropInterval) {
-                playerDrop();
-            }
-
-            draw();
-            requestAnimationFrame(update);
-        }
-
-        const arena = createMatrix(12, 20);
-
-        const player = {
-            pos: {x: 0, y: 0},
-            matrix: null,
-            score: 0
-        };
-
-        function addControlListeners() {
-            function handleEvent(e, callback) {
-                e.preventDefault();
-                callback();
-            }
-
-            document.getElementById('left').addEventListener('touchstart', e => handleEvent(e, () => playerMove(-1)));
-            document.getElementById('right').addEventListener('touchstart', e => handleEvent(e, () => playerMove(1)));
-            document.getElementById('down').addEventListener('touchstart', e => handleEvent(e, () => playerDrop()));
-            document.getElementById('rotate').addEventListener('touchstart', e => handleEvent(e, () => playerRotate(1)));
-
-            document.getElementById('left').addEventListener('click', e => handleEvent(e, () => playerMove(-1)));
-            document.getElementById('right').addEventListener('click', e => handleEvent(e, () => playerMove(1)));
-            document.getElementById('down').addEventListener('click', e => handleEvent(e, () => playerDrop()));
-            document.getElementById('rotate').addEventListener('click', e => handleEvent(e, () => playerRotate(1)));
-        }
-
-        addControlListeners();
-        playerReset();
-        update();
-    </script>
+    <script src="fractal.js"></script>
 </body>
 </html>
