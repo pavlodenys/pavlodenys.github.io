@@ -75,6 +75,26 @@ function julia(z, precision) {
     return maxIterations;
 }
 
+// Burning Ship fractal formula
+function burningShip(c, precision) {
+    let z = { real: c.real, imag: c.imag };
+    for (let i = 0; i < maxIterations; i++) {
+        const real = z.real * z.real - z.imag * z.imag + c.real;
+        const imag = 2 * Math.abs(z.real * z.imag) + c.imag;
+        z = { real: Math.abs(real), imag: Math.abs(imag) };
+        if (z.real * z.real + z.imag * z.imag > 4) {
+            console.log(`Burning Ship: Escaped at iteration ${i}, c: ${JSON.stringify(c)}, z: ${JSON.stringify(z)}`);
+            return i;
+        }
+        if (Math.abs(z.real - c.real) < precision && Math.abs(z.imag - c.imag) < precision) {
+            console.log(`Burning Ship: Precision limit reached at iteration ${i}, c: ${JSON.stringify(c)}, z: ${JSON.stringify(z)}`);
+            return maxIterations;
+        }
+    }
+    console.log(`Burning Ship: Max iterations reached, c: ${JSON.stringify(c)}, z: ${JSON.stringify(z)}`);
+    return maxIterations;
+}
+
 // Add this new function for color mapping
 function getColor(iterations, maxIterations) {
     if (iterations === maxIterations) {
@@ -112,12 +132,14 @@ function getColor(iterations, maxIterations) {
     ];
 }
 
-// Modify the renderFractal function to use the new getColor function and support Julia set
+// Modify the renderFractal function to use the new getColor function and support Julia set and Burning Ship
 function renderFractal() {
     const imageData = ctx.createImageData(canvas.width, canvas.height);
     const data = imageData.data;
     const selectedFormula = formulaSelect.value;
     const precision = calculatePrecision();
+
+    console.log(`Rendering fractal with formula: ${selectedFormula}, maxIterations: ${maxIterations}, precision: ${precision}`);
 
     for (let x = 0; x < canvas.width; x++) {
         for (let y = 0; y < canvas.height; y++) {
@@ -128,7 +150,11 @@ function renderFractal() {
                 iterations = mandelbrot(c, precision);
             } else if (selectedFormula === 'julia') {
                 iterations = julia(c, precision);
+            } else if (selectedFormula === 'burningShip') {
+                iterations = burningShip(c, precision);
             }
+
+            console.log(`Pixel (${x}, ${y}), c: ${JSON.stringify(c)}, iterations: ${iterations}`);
 
             const index = (y * canvas.width + x) * 4;
             const [r, g, b] = getColor(iterations, maxIterations);
