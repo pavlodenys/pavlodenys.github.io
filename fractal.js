@@ -9,7 +9,7 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 // Fractal parameters
-let maxIterations = 100;
+let maxIterations = 1;
 let xMin = -2;
 let xMax = 1;
 let yMin = -1.5;
