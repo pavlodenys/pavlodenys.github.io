@@ -1,75 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Fractal View</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        #fractalCanvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background-color: #000; /* Set background color for better contrast */
+      }
+
+      #controls {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        max-width: 90%;
+        width: 300px;
+        z-index: 10;
+      }
+
+      @media (max-width: 600px) {
         #controls {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            max-width: 90%;
-            width: 300px;
-        }
-        @media (max-width: 600px) {
-            #controls {
-                position: fixed;
-                top: auto;
-                bottom: 20px;
-                left: 50%;
-                transform: translateX(-50%);
-                width: 90%;
-                max-width: none;
-            }
+          top: auto;
+          bottom: 20px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 90%;
+          max-width: none;
+          padding: 10px;
         }
         #controls label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
+          font-size: 14px;
         }
         #controls select,
         #controls input,
         #controls button {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-size: 16px;
+          font-size: 16px;
+          padding: 10px;
+          margin-bottom: 10px;
         }
+        #controls button {
+          display: inline-block;
+          width: 48%;
+          margin-right: 2%;
+        }
+      }
+
+      #controls button {
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        margin-bottom: 15px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+      }
+
+      #controls button:last-child {
+        margin-right: 0;
+      }
+      #loadingOverlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        color: white;
+        font-size: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        display: none; /* Hide by default */
+      }
     </style>
-</head>
-<body>
+    <!-- Add this to your HTML head -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <!-- Add this to your HTML -->
+    <div id="loadingOverlay">Loading...</div>
     <canvas id="fractalCanvas"></canvas>
     <div id="controls">
-        <label for="formulaSelect">Formula:</label>
-        <select id="formulaSelect">
-            <option value="mandelbrot">Mandelbrot</option>
-            <option value="julia">Julia</option>
-            <option value="burningShip">Burning Ship</option>
-        </select>
-        <label for="maxIterations">Max Iterations:</label>
-        <input type="number" id="maxIterations" value="100" min="1">
-        <button id="resetZoom">Reset Zoom</button>
-        <button id="zoomIn">Zoom In (+)</button>
-        <button id="zoomOut">Zoom Out (-)</button>
+      <label for="formulaSelect">Formula:</label>
+      <select id="formulaSelect">
+        <option value="mandelbrot">Mandelbrot</option>
+        <option value="julia">Julia</option>
+        <option value="burningShip">Burning Ship</option>
+      </select>
+      <label for="maxIterations">Max Iterations:</label>
+      <input type="number" id="maxIterations" value="100" min="1" />
+      <button id="resetZoom">Reset Zoom</button>
+      <button id="zoomIn"><i class="fas fa-search-plus"></i> Zoom In</button>
+      <button id="zoomOut"><i class="fas fa-search-minus"></i> Zoom Out</button>
     </div>
     <script src="fractal.js"></script>
-</body>
+  </body>
 </html>

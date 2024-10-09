@@ -4,6 +4,124 @@ const maxIterationsInput = document.getElementById('maxIterations');
 const canvas = document.getElementById('fractalCanvas');
 const ctx = canvas.getContext('2d');
 
+canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+canvas.addEventListener('touchend', handleTouchEnd, false);
+canvas.addEventListener('touchcancel', handleTouchEnd, false);
+
+let lastTouchEnd = 0;
+let touchStartDistance = null;
+let initialPinchMidpoint = null;
+let isPanning = false;
+let lastPanPosition = null;
+
+function handleTouchStart(event) {
+    if (event.touches.length === 1) {
+        // Single touch: Start panning
+        isPanning = true;
+        lastPanPosition = {
+            x: event.touches[0].clientX,
+            y: event.touches[0].clientY
+        };
+    } else if (event.touches.length === 2) {
+        // Two fingers: Start zooming
+        isPanning = false;
+        touchStartDistance = getDistanceBetweenTouches(event.touches);
+        initialPinchMidpoint = getMidpointBetweenTouches(event.touches);
+    }
+}
+
+function handleTouchEnd(event) {
+    if (event.touches.length === 0) {
+        // Reset states
+        isPanning = false;
+        touchStartDistance = null;
+        initialPinchMidpoint = null;
+        lastPanPosition = null;
+    }
+}
+
+function getDistanceBetweenTouches(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getMidpointBetweenTouches(touches) {
+    const x = (touches[0].clientX + touches[1].clientX) / 2;
+    const y = (touches[0].clientY + touches[1].clientY) / 2;
+    return { x, y };
+}
+
+
+function panFractal(deltaX, deltaY) {
+    const xRange = xMax - xMin;
+    const yRange = yMax - yMin;
+    const deltaXComplex = (deltaX / canvas.width) * xRange;
+    const deltaYComplex = (deltaY / canvas.height) * yRange;
+    xMin -= deltaXComplex;
+    xMax -= deltaXComplex;
+    yMin += deltaYComplex; // Note: y-axis is inverted in canvas
+    yMax += deltaYComplex;
+    renderFractal();
+}
+
+function pinchZoom(scale, midpoint) {
+    const mousePos = {
+        x: midpoint.x - canvas.offsetLeft,
+        y: midpoint.y - canvas.offsetTop
+    };
+    const center = mapToComplex(mousePos.x, mousePos.y);
+
+    const xRange = xMax - xMin;
+    const yRange = yMax - yMin;
+
+    const newXRange = xRange / scale;
+    const newYRange = yRange / scale;
+
+    xMin = center.real - (mousePos.x / canvas.width) * newXRange;
+    xMax = xMin + newXRange;
+    yMin = center.imag - ((canvas.height - mousePos.y) / canvas.height) * newYRange;
+    yMax = yMin + newYRange;
+
+    renderFractal();
+}
+
+
+let isRendering = false;
+
+function handleTouchMove(event) {
+    event.preventDefault();
+    if (!isRendering) {
+        isRendering = true;
+        requestAnimationFrame(() => {
+            event.preventDefault(); // Prevent default scrolling behavior
+            if (event.touches.length === 1 && isPanning) {
+                // Pan
+                const currentPanPosition = {
+                    x: event.touches[0].clientX,
+                    y: event.touches[0].clientY
+                };
+                const deltaX = currentPanPosition.x - lastPanPosition.x;
+                const deltaY = currentPanPosition.y - lastPanPosition.y;
+                panFractal(deltaX, deltaY);
+                lastPanPosition = currentPanPosition;
+            } else if (event.touches.length === 2) {
+                // Pinch Zoom
+                const currentDistance = getDistanceBetweenTouches(event.touches);
+                const scale = currentDistance / touchStartDistance;
+                const currentMidpoint = getMidpointBetweenTouches(event.touches);
+                pinchZoom(scale, currentMidpoint);
+                touchStartDistance = currentDistance;
+                initialPinchMidpoint = currentMidpoint;
+            }
+
+            isRendering = false;
+        });
+    }
+}
+
+
 // Set canvas size
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -129,38 +247,108 @@ function getColor(iterations, maxIterations) {
 }
 
 // Modify the renderFractal function to use the new getColor function and support Julia set and Burning Ship
+// function renderFractal() {
+//     const imageData = ctx.createImageData(canvas.width, canvas.height);
+//     const data = imageData.data;
+//     const selectedFormula = formulaSelect.value;
+//     const precision = calculatePrecision();
+
+
+//     for (let x = 0; x < canvas.width; x++) {
+//         for (let y = 0; y < canvas.height; y++) {
+//             const c = mapToComplex(x, y);
+//             let iterations;
+
+//             if (selectedFormula === 'mandelbrot') {
+//                 iterations = mandelbrot(c, precision);
+//             } else if (selectedFormula === 'julia') {
+//                 iterations = julia(c, precision);
+//             } else if (selectedFormula === 'burningShip') {
+//                 iterations = burningShip(c, precision);
+//             }
+
+
+
+//             const index = (y * canvas.width + x) * 4;
+//             const [r, g, b] = getColor(iterations, maxIterations);
+//             data[index] = r;
+//             data[index + 1] = g;
+//             data[index + 2] = b;
+//             data[index + 3] = 255; // Alpha channel
+//         }
+//     }
+
+//     ctx.putImageData(imageData, 0, 0);
+// }
+
+// Selection variables
+// var isSelecting = false;
+// var selectionStart = { x: 0, y: 0 };
+// var selectionEnd = { x: 0, y: 0 };
+
+let worker;
+
+// Map canvas coordinates to complex plane
+function mapToComplex(x, y) {
+    const real = xMin + (x / canvas.width) * (xMax - xMin);
+    const imag = yMin + (y / canvas.height) * (yMax - yMin);
+    return { real, imag };
+}
+
+// Implement renderFractal with progressive rendering
 function renderFractal() {
-    const imageData = ctx.createImageData(canvas.width, canvas.height);
-    const data = imageData.data;
-    const selectedFormula = formulaSelect.value;
-    const precision = calculatePrecision();
-
-
-    for (let x = 0; x < canvas.width; x++) {
-        for (let y = 0; y < canvas.height; y++) {
-            const c = mapToComplex(x, y);
-            let iterations;
-
-            if (selectedFormula === 'mandelbrot') {
-                iterations = mandelbrot(c, precision);
-            } else if (selectedFormula === 'julia') {
-                iterations = julia(c, precision);
-            } else if (selectedFormula === 'burningShip') {
-                iterations = burningShip(c, precision);
-            }
-
-
-
-            const index = (y * canvas.width + x) * 4;
-            const [r, g, b] = getColor(iterations, maxIterations);
-            data[index] = r;
-            data[index + 1] = g;
-            data[index + 2] = b;
-            data[index + 3] = 255; // Alpha channel
-        }
+    document.getElementById('loadingOverlay').style.display = 'flex';
+    if (worker) {
+        worker.terminate();
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    worker = new Worker('fractalWorker.js');
+
+    worker.onmessage = function (event) {
+        const { startX, startY, imageData, scale } = event.data;
+
+        const offCanvas = document.createElement('canvas');
+        offCanvas.width = imageData.width;
+        offCanvas.height = imageData.height;
+        const offCtx = offCanvas.getContext('2d');
+        offCtx.putImageData(imageData, 0, 0);
+
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(
+            offCanvas,
+            0,
+            0,
+            offCanvas.width,
+            offCanvas.height,
+            startX * scale,
+            startY * scale,
+            offCanvas.width * scale,
+            offCanvas.height * scale
+        );
+
+        if (event.data.isComplete) {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+    };
+
+    const scales = [4, 2, 1];
+
+    scales.forEach(scale => {
+        const message = {
+            width: Math.ceil(canvas.width / scale),
+            height: Math.ceil(canvas.height / scale),
+            xMin,
+            xMax,
+            yMin,
+            yMax,
+            maxIterations,
+            selectedFormula: formulaSelect.value,
+            tileSize: 64,
+            scale
+        };
+
+        worker.postMessage(message);
+    });
 }
 
 // Add this function to calculate precision based on zoom level
