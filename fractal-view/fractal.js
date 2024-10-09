@@ -43,7 +43,7 @@ function mapToComplex(x, y) {
 }
 
 // Mandelbrot set formula
-function mandelbrot(c, precision) {
+function mandelbrot(c) {
     let z = { real: 0, imag: 0 };
     for (let i = 0; i < maxIterations; i++) {
         const real = z.real * z.real - z.imag * z.imag + c.real;
@@ -51,9 +51,6 @@ function mandelbrot(c, precision) {
         z = { real, imag };
         if (z.real * z.real + z.imag * z.imag > 4) {
             return i;
-        }
-        if (Math.abs(z.real - c.real) < precision && Math.abs(z.imag - c.imag) < precision) {
-            return maxIterations;
         }
     }
     return maxIterations;
@@ -83,15 +80,14 @@ function burningShip(c, precision) {
         const imag = 2 * Math.abs(z.real * z.imag) + c.imag;
         z = { real: Math.abs(real), imag: Math.abs(imag) };
         if (z.real * z.real + z.imag * z.imag > 4) {
-            console.log(`Burning Ship: Escaped at iteration ${i}, c: ${JSON.stringify(c)}, z: ${JSON.stringify(z)}`);
+
             return i;
         }
         if (Math.abs(z.real - c.real) < precision && Math.abs(z.imag - c.imag) < precision) {
-            console.log(`Burning Ship: Precision limit reached at iteration ${i}, c: ${JSON.stringify(c)}, z: ${JSON.stringify(z)}`);
             return maxIterations;
         }
     }
-    console.log(`Burning Ship: Max iterations reached, c: ${JSON.stringify(c)}, z: ${JSON.stringify(z)}`);
+
     return maxIterations;
 }
 
@@ -139,7 +135,6 @@ function renderFractal() {
     const selectedFormula = formulaSelect.value;
     const precision = calculatePrecision();
 
-    console.log(`Rendering fractal with formula: ${selectedFormula}, maxIterations: ${maxIterations}, precision: ${precision}`);
 
     for (let x = 0; x < canvas.width; x++) {
         for (let y = 0; y < canvas.height; y++) {
@@ -154,7 +149,7 @@ function renderFractal() {
                 iterations = burningShip(c, precision);
             }
 
-            console.log(`Pixel (${x}, ${y}), c: ${JSON.stringify(c)}, iterations: ${iterations}`);
+
 
             const index = (y * canvas.width + x) * 4;
             const [r, g, b] = getColor(iterations, maxIterations);
@@ -188,8 +183,6 @@ function calculateNewBoundaries(start, end) {
     xMax = newXMax;
     yMin = newYMin;
     yMax = newYMax;
-
-    console.log('New boundaries:', { xMin, xMax, yMin, yMax });
 }
 
 function drawSelectionRectangle() {
@@ -212,7 +205,6 @@ function resetZoom() {
     xMax = INITIAL_X_MAX;
     yMin = INITIAL_Y_MIN;
     yMax = INITIAL_Y_MAX;
-    console.log('Zoom reset to initial boundaries');
     renderFractal();
 }
 
@@ -251,7 +243,6 @@ function zoom(factor) {
     // Ensure we don't zoom in or out too far
     const zoomFactor = currentWidth / newWidth;
     if (zoomFactor < MIN_ZOOM_FACTOR || zoomFactor > MAX_ZOOM_FACTOR) {
-        console.log('Zoom limit reached');
         return;
     }
 
@@ -261,7 +252,7 @@ function zoom(factor) {
     yMin = centerY - newHeight / 2;
     yMax = centerY + newHeight / 2;
 
-    console.log(`Zoomed ${factor < 1 ? 'in' : 'out'}: new boundaries set`, { xMin, xMax, yMin, yMax });
+
 
     // Redraw fractal
     renderFractal();
@@ -269,14 +260,12 @@ function zoom(factor) {
 
 // Event listeners
 formulaSelect.addEventListener('change', (event) => {
-    console.log('Selected formula:', event.target.value);
     renderFractal(); // Re-render the fractal when the formula changes
 });
 
 maxIterationsInput.addEventListener('input', (event) => {
     const newMaxIterations = parseInt(event.target.value);
     if (!isNaN(newMaxIterations) && newMaxIterations > 0) {
-        console.log('Max iterations updated:', newMaxIterations);
         maxIterations = newMaxIterations;
         renderFractal();
     } else {
@@ -290,7 +279,6 @@ canvas.addEventListener('mousedown', (event) => {
         x: event.clientX - canvas.offsetLeft,
         y: event.clientY - canvas.offsetTop
     };
-    console.log('Selection started at:', selectionStart);
 });
 
 canvas.addEventListener('mousemove', (event) => {
@@ -311,27 +299,22 @@ canvas.addEventListener('mouseup', (event) => {
             x: event.clientX - canvas.offsetLeft,
             y: event.clientY - canvas.offsetTop
         };
-        console.log('Selection ended at:', selectionEnd);
 
         // Check if the selection has a non-zero area
         if (selectionStart.x !== selectionEnd.x && selectionStart.y !== selectionEnd.y) {
             calculateNewBoundaries(selectionStart, selectionEnd);
             renderFractal();
         } else {
-            console.log('Zero-area selection, ignoring');
             renderFractal(); // Re-render to clear the selection rectangle
         }
     }
 });
 
 document.getElementById('resetZoom').addEventListener('click', () => {
-    console.log('Resetting zoom');
     resetZoom();
 });
 
-// Initial log of values
-console.log('Initial formula:', formulaSelect.value);
-console.log('Initial max iterations:', maxIterationsInput.value);
+
 
 // Initial render
 renderFractal();
